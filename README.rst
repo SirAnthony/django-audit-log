@@ -12,6 +12,8 @@ Lets you keep track of who changed what
 model instance in you Django application. Full
 model structure is tracked and kept in a separate
 table similar in structure to the original model table.
+Models can be locked from changing and you cannot writing
+data to db untill unlock.
 
 Lest's say a user logs in the admin and adds a Product model instance.
 The audit log will track this in a separate table with the exact structure of you
@@ -29,14 +31,17 @@ indicating this with the state of the model before it was deleted.
 What It Doesn't Do
 ----------------------------
 
+
 The audit log bootstraps itself on each POST, PUT or DELETE request. So it
 can only track changes to model instances when they are
-made via the web interface of your application. Note: issuing a delete in a PUT
-request will work without a problem. Saving
-model instances through the Django shell for instance won't
+made via the web interface of your application.  Note: issuing a delete in a PUT
+request will work without a problem. Saving model instances through the
+Django shell for instance won't
 reflect anything in the audit log. Neither will  direct INSERT, UPDATE or DELETE
 statements, either within a request lifecycle or directly in your database shell.
 
+! Wrong. It works for me from shell(except user tracking, but it's normal).
+! Rewrite this section later.
 
 Installation and Usage
 ============================
@@ -91,6 +96,51 @@ example::
 
 Each time you add an instance of AuditLog to any of your models you need to run *python manage.py syncdb*
 so that the database table that keeps the actual audit log for the given model gets created.
+
+Lock models
+--------------------------
+
+An instance can be locked from write using AuditLog lock class method, unlocked by using unlock class method:
+
+example::
+		
+		>>> from audit_log.models.managers import AuditLog
+		>>> c = Product.objects.get(pk=1)
+		>>> c.price
+		Decimal('34')
+		>>> AuditLog.is_locked(c)
+		False
+		>>> AuditLog.lock(c)
+		True
+		>>> AuditLog.is_locked(c)
+		True
+		>>> c.price = 434
+		>>> c.save()
+		Traceback (most recent call last):
+		    ...
+		ItemLockedError: 'Product instance is locked'
+		d = Product.objects.get(pk=1)
+		>>> d.price
+		Decimal('34')
+		>>> AuditLog.unlock(c)
+		True
+		>>> AuditLog.is_locked(c)
+		False
+		>>> c.save()
+		>>> d = Product.objects.get(pk=1)
+		>>> d.price
+		Decimal('434')
+
+Non-existent records can not be locked:
+
+example::
+
+		>>> p = Product(name='d', description='d',price=1, category=cat)
+		>>> AuditLog.is_locked(p)
+		False
+		>>> AuditLog.lock(p)
+		False
+
 
 Querying the Audit Log
 --------------------------

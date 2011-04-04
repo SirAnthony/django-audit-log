@@ -5,8 +5,13 @@ from django.utils.functional import curry
 from django.utils.translation import ugettext_lazy as _
 
 
-
 from audit_log.models.fields import LastUserField
+
+class ItemLockedError(Exception):
+    def __init__(self, model):
+        self.value = '%s instance is locked' % model.__class__.__name__
+    def __str__(self):
+        return repr(self.value)
 
 class LogEntryObjectDescriptor(object):
     def __init__(self, model):
@@ -60,6 +65,14 @@ class AuditLog(object):
                 attrs[field.attname] = getattr(instance, field.attname)
         manager.create(action_type = action_type, **attrs)
     
+    def pre_save(self, instance, **kwargs):
+        if self.is_locked(instance):
+            raise ItemLockedError(instance)
+    
+    def pre_delete(self, instance, **kwargs):
+        if self.is_locked(instance):
+            raise ItemLockedError(instance)
+    
     def post_save(self, instance, created, **kwargs):
         self.create_log_entry(instance, created and 'I' or 'U')
     
@@ -70,6 +83,9 @@ class AuditLog(object):
     
     def finalize(self, sender, **kwargs):
         log_entry_model = self.create_log_entry_model(sender)
+        
+        models.signals.pre_save.connect(self.pre_save, sender = sender, weak = False)
+        models.signals.pre_delete.connect(self.pre_delete, sender = sender, weak = False)
         
         models.signals.post_save.connect(self.post_save, sender = sender, weak = False)
         models.signals.post_delete.connect(self.post_delete, sender = sender, weak = False)
@@ -120,9 +136,7 @@ class AuditLog(object):
                 fields[field.name] = field
             
         return fields
-    
 
-    
     def get_logging_fields(self, model):
         """
         Returns a dictionary mapping of the fields that are used for
@@ -182,4 +196,29 @@ class AuditLog(object):
         attrs.update(Meta = type('Meta', (), self.get_meta_options(model)))
         name = '%sAuditLogEntry'%model._meta.object_name
         return type(name, (models.Model,), attrs)
+    
+    @classmethod
+    def _lock_toggle(cls, instance, val):
+        try:
+            ins = instance.audit_log.filter(**{instance._meta.pk.name: instance.pk}).latest('action_date')
+        except:
+            return False
+        ins.locked = val
+        ins.save()
+        return True
+    
+    @classmethod
+    def lock(cls, instance):
+        return cls._lock_toggle(instance, True)
+    
+    @classmethod
+    def unlock(cls, instance):
+        return cls._lock_toggle(instance, False)
         
+    @classmethod
+    def is_locked(self, instance):
+        #FIXME: allways return false on pk changes
+        try:
+            return instance.audit_log.filter(**{instance._meta.pk.name: instance.pk}).latest('action_date').locked
+        except:
+            return False
