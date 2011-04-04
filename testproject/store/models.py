@@ -1,5 +1,4 @@
 from django.db import models
-from audit_log.models.fields import LastUserField
 from audit_log.models.managers import AuditLog
 import datetime
 
@@ -19,8 +18,7 @@ class Product(models.Model):
     category = models.ForeignKey(ProductCategory)
     
     audit_log = AuditLog()
-    
-    
+
     def __unicode__(self):
         return self.name
 

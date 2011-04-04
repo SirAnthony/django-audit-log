@@ -4,7 +4,6 @@ from django.db import models
 from django.utils.functional import curry
 from django.utils.translation import ugettext_lazy as _
 
-
 from audit_log.models.fields import LastUserField
 
 class ItemLockedError(Exception):
@@ -34,6 +33,14 @@ class AuditLogManager(models.Manager):
         f = {self.instance._meta.pk.name : self.instance.pk}
         return super(AuditLogManager, self).get_query_set().filter(**f)
     
+    def is_locked(self):
+        return AuditLog.is_locked(self.instance)
+    
+    def lock(self):
+        return AuditLog.lock(self.instance)
+    
+    def unlock(self):
+        return AuditLog.unlock(self.instance)
             
 class AuditLogDescriptor(object):
     def __init__(self, model, manager_class):
