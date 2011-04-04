@@ -155,6 +155,7 @@ class AuditLog(object):
                 ('U', _('Changed')),
                 ('D', _('Deleted')),
             )),
+            'locked' : models.BooleanField(),
             'object_state' : LogEntryObjectDescriptor(model),
             '__unicode__' : entry_instance_to_unicode,
         }
