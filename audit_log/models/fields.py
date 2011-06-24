@@ -15,3 +15,11 @@ class LastUserField(models.ForeignKey):
         super(LastUserField, self).contribute_to_class(cls, name)
         registry = registration.FieldRegistry(self.__class__)
         registry.add_field(cls, self)
+
+    def south_field_triple(self):
+        "Returns a suitable description of this field for South."
+        # We'll just introspect ourselves, since we inherit.
+        from south.modelsinspector import introspector
+        field_class = "django.db.models.fields.ForeignKey"
+        args, kwargs = introspector(self)
+        return (field_class, args, kwargs)
