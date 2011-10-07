@@ -120,6 +120,9 @@ class AuditLog(object):
                     #have only one autofield.
                 
                     field.__class__ = models.IntegerField
+                    #Apply patch for 1:1 field issue ref: https://github.com/Atomidata/django-audit-log/issues/7
++                if isinstance(field, models.OneToOneField):
++                    field.__class__ = models.ForeignKey
                 
                 if field.primary_key:
                     field.serialize = True
