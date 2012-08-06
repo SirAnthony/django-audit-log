@@ -2,7 +2,7 @@ try:
     from setuptools import setup
 except ImportError:
     from distutils.core import setup
-    
+
 setup(
     name = 'django-audit-log',
     version = '0.2.1',
@@ -15,7 +15,7 @@ setup(
     url = 'http://code.google.com/p/django-audit-log/',
     download_url = 'http://code.google.com/p/django-audit-log/downloads/list',
     include_package_data = True,
-    
+
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Plugins',
