@@ -2,12 +2,8 @@ import copy
 from django.db import models
 from django.utils.functional import curry
 from django.utils.translation import ugettext_lazy as _
-try:
-    from django.utils import timezone as datetime
-except:
-    from datetime import datetime
 
-from audit_log.models.fields import LastUserField
+from audit_log.models.fields import LastUserField, LastIPField
 
 
 class ItemLockedError(Exception):
@@ -140,16 +136,12 @@ class AuditLog(object):
                     #can not be guaranteed to be unique
                     #in the audit log entry but they
                     #should still be indexed for faster lookups.
-
                     field.primary_key = False
                     field._unique = False
                     field.db_index = True
 
-
                 if field.rel and field.rel.related_name:
                     field.rel.related_name = '_auditlog_%s' % field.rel.related_name
-
-
 
                 fields[field.name] = field
 
@@ -180,13 +172,14 @@ class AuditLog(object):
 
         return {
             'action_id' : models.AutoField(primary_key = True),
-            'action_date' : models.DateTimeField(default = datetime.now),
+            'action_date' : models.DateTimeField(auto_now_add = True),
             'action_user' : LastUserField(related_name = rel_name),
             'action_type' : models.CharField(max_length = 1, choices = (
                 ('I', _('Created')),
                 ('U', _('Changed')),
                 ('D', _('Deleted')),
             )),
+            'action_ip' : LastIPField(),
             'locked' : models.BooleanField(),
             'object_state' : LogEntryObjectDescriptor(model),
             '__unicode__' : entry_instance_to_unicode,
@@ -195,7 +188,7 @@ class AuditLog(object):
 
     def get_meta_options(self, model):
         """
-        Returns a dictionary of fileds that will be added to
+        Returns a dictionary of fields that will be added to
         the Meta inner class of the log entry model.
         """
         return {
@@ -222,7 +215,7 @@ class AuditLog(object):
         except:
             return False
         ins.locked = val
-        ins.save()
+        ins.save(update_fields=['locked'])
         return True
 
     @classmethod
