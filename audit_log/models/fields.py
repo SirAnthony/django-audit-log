@@ -39,6 +39,14 @@ class LastIPField(models.IPAddressField):
         registry = registration.FieldRegistry(self.__class__)
         registry.add_field(cls, self)
 
+    def south_field_triple(self):
+        "Returns a suitable description of this field for South."
+        # We'll just introspect ourselves, since we inherit.
+        from south.modelsinspector import introspector
+        field_class = "django.db.models.fields.IPAddressField"
+        args, kwargs = introspector(self)
+        return (field_class, args, kwargs)
+
 
 # taken from http://south.aeracode.org/ticket/693
 try:
