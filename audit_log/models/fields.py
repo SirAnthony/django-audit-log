@@ -16,14 +16,6 @@ class LastUserField(models.ForeignKey):
         registry = registration.FieldRegistry(self.__class__)
         registry.add_field(cls, self)
 
-    def south_field_triple(self):
-        "Returns a suitable description of this field for South."
-        # We'll just introspect ourselves, since we inherit.
-        from south.modelsinspector import introspector
-        field_class = "django.db.models.fields.related.ForeignKey"
-        args, kwargs = introspector(self)
-        return (field_class, args, kwargs)
-
 
 class LastIPField(models.IPAddressField):
     """
@@ -39,14 +31,6 @@ class LastIPField(models.IPAddressField):
         registry = registration.FieldRegistry(self.__class__)
         registry.add_field(cls, self)
 
-    def south_field_triple(self):
-        "Returns a suitable description of this field for South."
-        # We'll just introspect ourselves, since we inherit.
-        from south.modelsinspector import introspector
-        field_class = "django.db.models.fields.IPAddressField"
-        args, kwargs = introspector(self)
-        return (field_class, args, kwargs)
-
 
 # taken from http://south.aeracode.org/ticket/693
 try:
@@ -61,12 +45,21 @@ try:
             'to': ['rel.to', {'default': User}],
             'null': ['null', {'default': True}],
         },
+    ),(
+        (LastIPField,),
+        [],
+        {
+            'null': ['null', {'default': True}],
+        },
     )]
 
     # Add the rules for the `LastUserField`
     add_introspection_rules(
         rules,
-        ['^audit_log\.models\.fields\.LastUserField'],
+        ['^audit_log\.models\.fields\.LastUserField',
+        '^audit_log\.models\.fields\.LastIPField'],
     )
+
+
 except ImportError:
     pass
