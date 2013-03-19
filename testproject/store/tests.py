@@ -8,37 +8,37 @@ def _setup_admin():
     admin = User(username = "admin", is_staff = True, is_superuser = True)
     admin.set_password("admin")
     admin.save()
-    
+
 
 class EntryManagerSelectTest(TestCase):
     fixtures = ['test_data.json']
-    
+
     def test_model_level_select(self):
         self.failUnlessEqual(Product.audit_log.all().count(), 10)
-        
+
     def test_instance_level_select(self):
         self.failUnlessEqual(Product.objects.get(pk = 4).audit_log.all().count(), 3)
         self.failUnlessEqual(Product.objects.get(pk = 1).audit_log.all().count(), 2)
-        
+
 
 class LogEntryMetaOptionsTest(TestCase):
-    
+
     def test_app_label(self):
         self.failUnlessEqual(Product.audit_log.model._meta.app_label, Product._meta.app_label)
         self.failUnlessEqual(WarehouseEntry.audit_log.model._meta.app_label, WarehouseEntry._meta.app_label)
-    
+
     def test_table_name(self):
         self.failUnlessEqual(Product.audit_log.model._meta.db_table, "%sauditlogentry"%Product._meta.db_table)
         self.failUnlessEqual(WarehouseEntry.audit_log.model._meta.db_table, "%sauditlogentry"%WarehouseEntry._meta.db_table)
 
 
 class LoggingTest(TestCase):
-    
+
     def setup_client(self):
         c = Client()
         c.login(username = "admin", password = "admin")
         return c
-    
+
     def test_logging_insert_update(self):
         _setup_admin()
         c = self.setup_client()
@@ -49,20 +49,20 @@ class LoggingTest(TestCase):
         self.failUnlessEqual(category.audit_log.all()[0].description, category.description)
         self.failUnlessEqual(category.audit_log.all()[0].action_type, "I")
         self.failUnlessEqual(category.audit_log.all()[0].action_user.username, "admin")
-    
+
         c.post('/admin/store/productcategory/%s/'%'Test Category', {'name': 'Test Category new name', 'description': 'Test description'})
         category = ProductCategory.objects.get(pk = "Test Category new name")
         self.failUnlessEqual(category.audit_log.all().count(), 1)
         self.failUnlessEqual(category.audit_log.all()[0].name, "Test Category new name")
         self.failUnlessEqual(category.audit_log.all()[0].action_type, "I")
-        
-        c.post('/admin/store/productcategory/%s/'%'Test Category new name', {'name': 'Test Category new name', 
+
+        c.post('/admin/store/productcategory/%s/'%'Test Category new name', {'name': 'Test Category new name',
                                                                             'description': 'Test modified description'})
         category = ProductCategory.objects.get(pk = "Test Category new name")
         self.failUnlessEqual(category.audit_log.all().count(), 2)
         self.failUnlessEqual(category.audit_log.all()[0].description, "Test modified description")
         self.failUnlessEqual(category.audit_log.all()[0].action_type, "U")
-    
+
     def test_logging_delete(self):
         _setup_admin()
         c = self.setup_client()
@@ -71,9 +71,9 @@ class LoggingTest(TestCase):
         c.post('/admin/store/productcategory/Test/delete/', {'post': 'yes'})
         self.failUnlessEqual(ProductCategory.objects.all().count(), 0)
         self.failUnlessEqual(ProductCategory.audit_log.all().count(), 2)
-        self.failUnlessEqual(ProductCategory.audit_log.all()[0].action_type, "D")        
-        
-        
+        self.failUnlessEqual(ProductCategory.audit_log.all()[0].action_type, "D")
+
+
     def test_logging_inherited(self):
         _setup_admin()
         c = Client()
@@ -83,5 +83,49 @@ class LoggingTest(TestCase):
         self.failUnlessEqual(widget.audit_log.all()[0].name, 'Test name')
         self.failUnlessEqual(hasattr(widget.audit_log.all()[0], 'special_power'), True)
         self.failUnlessEqual(widget.audit_log.all()[0].special_power, "Testpower")
-        
-        
+
+
+class LockTest(TestCase):
+
+    def test_lock_unlock(self):
+        """
+        >>> from audit_log.models.managers import AuditLog
+        >>> cat = ProductCategory(name="Doors"); cat.save()
+        >>> pr = Product(price=34, category=cat); pr.save()
+        >>> pr.price
+        34
+        >>> AuditLog.is_locked(pr)
+        False
+        >>> AuditLog.lock(pr)
+        True
+        >>> AuditLog.is_locked(pr)
+        True
+        >>> pr.price = 434
+        >>> pr.save()
+        Traceback (most recent call last):
+            ...
+        ItemLockedError: 'Product instance is locked'
+        >>> pr_new = Product.objects.get(pk=pr.pk)
+        >>> pr_new.price
+        Decimal('34')
+        >>> AuditLog.unlock(pr)
+        True
+        >>> AuditLog.is_locked(pr)
+        False
+        >>> pr.save()
+        >>> pr_new = Product.objects.get(pk=pr.pk)
+        >>> pr_new.price
+        Decimal('434')
+        """
+        return
+
+    def test_unsaved(self):
+        """
+        >>> from audit_log.models.managers import AuditLog
+        >>> pr = Product(name="Doors", category=ProductCategory())
+        >>> AuditLog.is_locked(pr)
+        False
+        >>> AuditLog.lock(pr)
+        False
+        """
+        return

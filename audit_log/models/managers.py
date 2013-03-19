@@ -46,6 +46,7 @@ class AuditLogManager(models.Manager):
     def unlock(self):
         return AuditLog.unlock(self.instance)
 
+
 class AuditLogDescriptor(object):
     def __init__(self, model, manager_class):
         self.model = model
@@ -55,6 +56,7 @@ class AuditLogDescriptor(object):
         if instance is None:
             return self._manager_class(self.model)
         return self._manager_class(self.model, instance)
+
 
 class AuditLog(object):
 
