@@ -1,3 +1,4 @@
+import sys
 import copy
 from django.db import models
 from django.utils.functional import curry
@@ -5,6 +6,12 @@ from django.utils.translation import ugettext_lazy as _
 
 from audit_log.models.fields import LastUserField, LastIPField
 
+
+ACTION_TYPES = (
+    ('I', _('Created')),
+    ('U', _('Changed')),
+    ('D', _('Deleted')),
+)
 
 class ItemLockedError(Exception):
     def __init__(self, model):
@@ -112,7 +119,7 @@ class AuditLog(object):
         track of for the provided model, returning a
         dictionary mapping field name to a copied field object.
         """
-        fields = {'__module__' : model.__module__}
+        fields = {'__module__' : model.__module__,}
 
         for field in model._meta.fields:
 
@@ -176,17 +183,12 @@ class AuditLog(object):
             'action_id' : models.AutoField(primary_key = True),
             'action_date' : models.DateTimeField(auto_now_add = True),
             'action_user' : LastUserField(related_name = rel_name),
-            'action_type' : models.CharField(max_length = 1, choices = (
-                ('I', _('Created')),
-                ('U', _('Changed')),
-                ('D', _('Deleted')),
-            )),
+            'action_type' : models.CharField(max_length = 1, choices = ACTION_TYPES),
             'action_ip' : LastIPField(),
             'locked' : models.BooleanField(),
             'object_state' : LogEntryObjectDescriptor(model),
             '__unicode__' : entry_instance_to_unicode,
         }
-
 
     def get_meta_options(self, model):
         """
@@ -208,7 +210,12 @@ class AuditLog(object):
         attrs.update(self.get_logging_fields(model))
         attrs.update(Meta = type('Meta', (), self.get_meta_options(model)))
         name = '%sAuditLogEntry'%model._meta.object_name
-        return type(name, (models.Model,), attrs)
+        model = type(name, (models.Model,), attrs)
+        # Like a hack
+        module = sys.modules[model.__module__]
+        if not hasattr(module, name):
+            setattr(module, name, model)
+        return model
 
     @classmethod
     def _lock_toggle(cls, instance, val):
