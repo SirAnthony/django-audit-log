@@ -13,6 +13,10 @@ ACTION_TYPES = (
     ('D', _('Deleted')),
 )
 
+# Oh
+models.options.DEFAULT_NAMES += ('auditlog_properties',)
+
+
 class ItemLockedError(Exception):
     def __init__(self, model):
         self.value = '%s instance is locked' % model.__class__.__name__
@@ -154,6 +158,10 @@ class AuditLog(object):
 
                 fields[field.name] = field
 
+        if hasattr(model._meta, 'auditlog_properties'):
+            for value in model._meta.auditlog_properties:
+                fields[value] = getattr(model, value)
+
         return fields
 
     def get_logging_fields(self, model):
@@ -196,8 +204,9 @@ class AuditLog(object):
         the Meta inner class of the log entry model.
         """
         return {
-            'ordering' : ('-action_date',),
+            'ordering' : ('-action_date', 'action_id'),
             'app_label' : model._meta.app_label,
+            'get_latest_by': 'action_date',
         }
 
     def create_log_entry_model(self, model):
@@ -220,7 +229,7 @@ class AuditLog(object):
     @classmethod
     def _lock_toggle(cls, instance, val):
         try:
-            ins = instance.audit_log.filter(**{instance._meta.pk.name: instance.pk}).latest('action_date')
+            ins = instance.audit_log.filter(**{instance._meta.pk.name: instance.pk}).latest()
         except:
             return False
         ins.locked = val
@@ -239,6 +248,6 @@ class AuditLog(object):
     def is_locked(self, instance):
         #FIXME: allways return false on pk changes
         try:
-            return instance.audit_log.filter(**{instance._meta.pk.name: instance.pk}).latest('action_date').locked
+            return instance.audit_log.filter(**{instance._meta.pk.name: instance.pk}).latest().locked
         except:
             return False
