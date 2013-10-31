@@ -12,7 +12,7 @@ class LastUserField(models.ForeignKey):
     def __init__(self, **kwargs):
         kwargs.pop('null', None)
         kwargs.pop('to', None)
-        super(LastUserField, self).__init__(User, null=null, **kwargs)
+        super(LastUserField, self).__init__(User, null=True, **kwargs)
     
     def contribute_to_class(self, cls, name):
         super(LastUserField, self).contribute_to_class(cls, name)
