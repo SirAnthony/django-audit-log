@@ -1,6 +1,20 @@
 from django.db import models
 from django.contrib.auth.models import User
 from audit_log import registration
+from south.modelsinspector import add_introspection_rules
+
+rules = [(
+    (fields.LastUserField,),
+    [],
+    {
+        'to': ['rel.to', {'default': User}],
+        'null': ['null', {'default': True}],
+    },
+)]
+add_introspection_rules(
+    rules,
+    ['^audit_log\.models\.fields\.LastUserField'],
+)
 
 
 class LastUserField(models.ForeignKey):
@@ -10,8 +24,6 @@ class LastUserField(models.ForeignKey):
     """
     
     def __init__(self, **kwargs):
-        kwargs.pop('null', None)
-        kwargs.pop('to', None)
         super(LastUserField, self).__init__(User, null=True, **kwargs)
     
     def contribute_to_class(self, cls, name):
