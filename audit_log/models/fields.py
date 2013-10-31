@@ -3,19 +3,6 @@ from django.contrib.auth.models import User
 from audit_log import registration
 from south.modelsinspector import add_introspection_rules
 
-rules = [(
-    (fields.LastUserField,),
-    [],
-    {
-        'to': ['rel.to', {'default': User}],
-        'null': ['null', {'default': True}],
-    },
-)]
-add_introspection_rules(
-    rules,
-    ['^audit_log\.models\.fields\.LastUserField'],
-)
-
 
 class LastUserField(models.ForeignKey):
     """
@@ -30,3 +17,17 @@ class LastUserField(models.ForeignKey):
         super(LastUserField, self).contribute_to_class(cls, name)
         registry = registration.FieldRegistry(self.__class__)
         registry.add_field(cls, self)
+
+
+rules = [(
+    [LastUserField],
+    [],
+    {
+        'to': ['rel.to', {'default': User}],
+        'null': ['null', {'default': True}],
+    },
+)]
+add_introspection_rules(
+    rules,
+    ['^audit_log\.models\.fields\.LastUserField'],
+)
