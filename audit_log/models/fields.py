@@ -14,10 +14,10 @@ class LastUserField(models.ForeignKey):
     A field that keeps the last user that saved an instance
     of a model. None will be the value for AnonymousUser.
     """
-    
+
     def __init__(self, to = AUTH_USER_MODEL, null = True,  **kwargs):
         super(LastUserField, self).__init__(to = to, null = null, **kwargs)
-    
+
     def contribute_to_class(self, cls, name):
         super(LastUserField, self).contribute_to_class(cls, name)
         registry = registration.FieldRegistry(self.__class__)
@@ -49,7 +49,7 @@ try:
         (LastUserField,),
         [],
         {
-            'to': ['rel.to', {'default': User}],
+            'to': ['rel.to', {'default': AUTH_USER_MODEL}],
             'null': ['null', {'default': True}],
         },
     ),(
