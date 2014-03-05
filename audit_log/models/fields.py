@@ -1,10 +1,10 @@
 from django.db import models
-from django.conf import settings
 from audit_log import registration
 
-if hasattr(settings, 'AUTH_USER_MODEL'):
-    AUTH_USER_MODEL = settings.AUTH_USER_MODEL
-else:
+try:
+    from django.contrib.auth import get_user_model
+    AUTH_USER_MODEL = get_user_model()
+except ImportError:
     from django.contrib.auth.models import User
     AUTH_USER_MODEL = User
 
