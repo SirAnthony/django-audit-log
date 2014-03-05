@@ -89,14 +89,6 @@ class AuditLog(object):
                 attrs[field.attname] = getattr(instance, field.attname)
         manager.create(action_type=action_type, **attrs)
 
-    def pre_save(self, instance, **kwargs):
-        if self.is_locked(instance):
-            raise ItemLockedError(instance)
-
-    def pre_delete(self, instance, **kwargs):
-        if self.is_locked(instance):
-            raise ItemLockedError(instance)
-
     def post_save(self, instance, created, **kwargs):
         self.create_log_entry(instance, created and 'I' or 'U')
 
@@ -104,6 +96,13 @@ class AuditLog(object):
     def post_delete(self, instance, **kwargs):
         self.create_log_entry(instance, 'D')
 
+    def pre_save(self, instance, **kwargs):
+        if self.is_locked(instance):
+            raise ItemLockedError(instance)
+
+    def pre_delete(self, instance, **kwargs):
+        if self.is_locked(instance):
+            raise ItemLockedError(instance)
 
     def finalize(self, sender, **kwargs):
         log_entry_model = self.create_log_entry_model(sender)
