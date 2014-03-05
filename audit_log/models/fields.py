@@ -1,15 +1,12 @@
 from django.db import models
 from django.conf import settings
 from audit_log import registration
-from south.modelsinspector import add_introspection_rules
 
-try:
-    # Django 1.5+
-    user_model = settings.AUTH_USER_MODEL
-except AttributeError:
-    # Django < 1.5
+if hasattr(settings, 'AUTH_USER_MODEL'):
+    AUTH_USER_MODEL = settings.AUTH_USER_MODEL
+else:
     from django.contrib.auth.models import User
-    user_model = User
+    AUTH_USER_MODEL = User
 
 
 class LastUserField(models.ForeignKey):
@@ -18,7 +15,7 @@ class LastUserField(models.ForeignKey):
     of a model. None will be the value for AnonymousUser.
     """
     
-    def __init__(self, to = user_model, null = True,  **kwargs):
+    def __init__(self, to = AUTH_USER_MODEL, null = True,  **kwargs):
         super(LastUserField, self).__init__(to = to, null = null, **kwargs)
     
     def contribute_to_class(self, cls, name):
@@ -69,20 +66,5 @@ try:
         ['^audit_log\.models\.fields\.LastUserField',
         '^audit_log\.models\.fields\.LastIPField'],
     )
-
-
 except ImportError:
     pass
-
-rules = [(
-    [LastUserField],
-    [],
-    {
-        'to': ['rel.to', {'default': user_model}],
-        'null': ['null', {'default': True}],
-    },
-)]
-add_introspection_rules(
-    rules,
-    ['^audit_log\.models\.fields\.LastUserField'],
-)
