@@ -194,7 +194,7 @@ class AuditLog(object):
             'action_user': LastUserField(related_name=rel_name),
             'action_type': models.CharField(max_length=1, choices=ACTION_TYPES),
             'action_ip': LastIPField(),
-            'locked': models.BooleanField(),
+            'locked': models.NullBooleanField(),
             'object_state': LogEntryObjectDescriptor(model),
             '__unicode__': entry_instance_to_unicode,
         }
