@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from audit_log import registration
+from south.modelsinspector import add_introspection_rules
 
 try:
     # Django 1.5+
@@ -72,3 +73,16 @@ try:
 
 except ImportError:
     pass
+
+rules = [(
+    [LastUserField],
+    [],
+    {
+        'to': ['rel.to', {'default': user_model}],
+        'null': ['null', {'default': True}],
+    },
+)]
+add_introspection_rules(
+    rules,
+    ['^audit_log\.models\.fields\.LastUserField'],
+)

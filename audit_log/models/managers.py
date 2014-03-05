@@ -1,6 +1,6 @@
 import sys
 import copy
-import datetime
+from django.utils import timezone as datetime
 from django.db import models
 from django.utils.functional import curry
 from django.utils.translation import ugettext_lazy as _
@@ -46,7 +46,7 @@ class AuditLogManager(models.Manager):
         if self.instance is None:
             return super(AuditLogManager, self).get_query_set()
 
-        f = {self.instance._meta.pk.name : self.instance.pk}
+        f = {self.instance._meta.pk.name: self.instance.pk}
         return super(AuditLogManager, self).get_query_set().filter(**f)
 
     def is_locked(self):
@@ -71,15 +71,14 @@ class AuditLogDescriptor(object):
 
 
 class AuditLog(object):
-
     manager_class = AuditLogManager
 
-    def __init__(self, exclude = []):
+    def __init__(self, exclude=[]):
         self._exclude = exclude
 
     def contribute_to_class(self, cls, name):
         self.manager_name = name
-        models.signals.class_prepared.connect(self.finalize, sender = cls)
+        models.signals.class_prepared.connect(self.finalize, sender=cls)
 
 
     def create_log_entry(self, instance, action_type):
@@ -88,7 +87,7 @@ class AuditLog(object):
         for field in instance._meta.fields:
             if field.attname not in self._exclude:
                 attrs[field.attname] = getattr(instance, field.attname)
-        manager.create(action_type = action_type, **attrs)
+        manager.create(action_type=action_type, **attrs)
 
     def pre_save(self, instance, **kwargs):
         if self.is_locked(instance):
@@ -103,17 +102,17 @@ class AuditLog(object):
 
 
     def post_delete(self, instance, **kwargs):
-        self.create_log_entry(instance,  'D')
+        self.create_log_entry(instance, 'D')
 
 
     def finalize(self, sender, **kwargs):
         log_entry_model = self.create_log_entry_model(sender)
 
-        models.signals.pre_save.connect(self.pre_save, sender = sender, weak = False)
-        models.signals.pre_delete.connect(self.pre_delete, sender = sender, weak = False)
+        models.signals.pre_save.connect(self.pre_save, sender=sender, weak=False)
+        models.signals.pre_delete.connect(self.pre_delete, sender=sender, weak=False)
 
-        models.signals.post_save.connect(self.post_save, sender = sender, weak = False)
-        models.signals.post_delete.connect(self.post_delete, sender = sender, weak = False)
+        models.signals.post_save.connect(self.post_save, sender=sender, weak=False)
+        models.signals.post_delete.connect(self.post_delete, sender=sender, weak=False)
 
         descriptor = AuditLogDescriptor(log_entry_model, self.manager_class)
         setattr(sender, self.manager_name, descriptor)
@@ -124,13 +123,13 @@ class AuditLog(object):
         track of for the provided model, returning a
         dictionary mapping field name to a copied field object.
         """
-        fields = {'__module__' : model.__module__,}
+        fields = {'__module__': model.__module__}
 
         for field in model._meta.fields:
 
             if not field.name in self._exclude:
 
-                field  = copy.deepcopy(field)
+                field = copy.deepcopy(field)
 
                 if isinstance(field, models.AutoField):
                     #we replace the AutoField of the original model
@@ -138,7 +137,7 @@ class AuditLog(object):
                     #have only one autofield.
 
                     field.__class__ = models.IntegerField
-                    #Apply patch for 1:1 field issue ref: https://github.com/Atomidata/django-audit-log/issues/7
+                #Apply patch for 1:1 field issue ref: https://github.com/Atomidata/django-audit-log/issues/7
                 if isinstance(field, models.OneToOneField):
                     field.__class__ = models.ForeignKey
 
@@ -150,16 +149,14 @@ class AuditLog(object):
                     #can not be guaranteed to be unique
                     #in the audit log entry but they
                     #should still be indexed for faster lookups.
-                
+
                     field.primary_key = False
                     field._unique = False
                     field.db_index = True
 
                 if field.rel and field.rel.related_name:
                     field.rel.related_name = '_auditlog_%s' % field.rel.related_name
-            
 
-                
                 fields[field.name] = field
 
         if hasattr(model._meta, 'auditlog_properties'):
@@ -167,41 +164,40 @@ class AuditLog(object):
                 fields[value] = getattr(model, value)
 
         return fields
-    
 
-    
+
     def get_logging_fields(self, model):
         """
         Returns a dictionary mapping of the fields that are used for
         keeping the acutal audit log entries.
         """
-        rel_name = '_%s_audit_log_entry'%model._meta.object_name.lower()
+        rel_name = '_%s_audit_log_entry' % model._meta.object_name.lower()
 
         def entry_instance_to_unicode(log_entry):
             try:
-                result = u'%s: %s %s at %s'%(model._meta.object_name,
-                                                log_entry.object_state,
-                                                log_entry.get_action_type_display().lower(),
-                                                log_entry.action_date,
+                result = u'%s: %s %s at %s' % (model._meta.object_name,
+                                               log_entry.object_state,
+                                               log_entry.get_action_type_display().lower(),
+                                               log_entry.action_date,
 
-                                                )
+                )
             except AttributeError:
-                result = u'%s %s at %s'%(model._meta.object_name,
-                                                log_entry.get_action_type_display().lower(),
-                                                log_entry.action_date
+                result = u'%s %s at %s' % (model._meta.object_name,
+                                           log_entry.get_action_type_display().lower(),
+                                           log_entry.action_date
 
-                                                )
+                )
             return result
 
         return {
-            'action_id' : models.AutoField(primary_key = True),
-            'action_date' : models.DateTimeField(auto_now_add = True),
-            'action_user' : LastUserField(related_name = rel_name),
-            'action_type' : models.CharField(max_length = 1, choices = ACTION_TYPES),
-            'action_ip' : LastIPField(),
-            'locked' : models.BooleanField(),
-            'object_state' : LogEntryObjectDescriptor(model),
-            '__unicode__' : entry_instance_to_unicode,
+            'action_id': models.AutoField(primary_key=True),
+            'action_date': models.DateTimeField(auto_now_add=True),
+            'action_user': LastUserField(related_name=rel_name),
+            'action_type': models.CharField(max_length=1, choices=ACTION_TYPES),
+            'action_ip': LastIPField(),
+            'locked': models.BooleanField(),
+            'object_state': LogEntryObjectDescriptor(model),
+            '__unicode__': entry_instance_to_unicode,
         }
 
     def get_meta_options(self, model):
@@ -210,8 +206,8 @@ class AuditLog(object):
         the Meta inner class of the log entry model.
         """
         return {
-            'ordering' : ('-action_date', 'action_id'),
-            'app_label' : model._meta.app_label,
+            'ordering': ('-action_date', 'action_id'),
+            'app_label': model._meta.app_label,
             'get_latest_by': 'action_date',
         }
 
@@ -223,8 +219,8 @@ class AuditLog(object):
 
         attrs = self.copy_fields(model)
         attrs.update(self.get_logging_fields(model))
-        attrs.update(Meta = type('Meta', (), self.get_meta_options(model)))
-        name = '%sAuditLogEntry'%model._meta.object_name
+        attrs.update(Meta=type('Meta', (), self.get_meta_options(model)))
+        name = '%sAuditLogEntry' % model._meta.object_name
         model = type(name, (models.Model,), attrs)
         # Like a hack
         module = sys.modules[model.__module__]
