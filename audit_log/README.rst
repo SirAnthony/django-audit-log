@@ -12,8 +12,6 @@ Lets you keep track of who changed what
 model instance in you Django application. Full
 model structure is tracked and kept in a separate
 table similar in structure to the original model table.
-Models can be locked from changing and you cannot writing
-data to db untill unlock.
 
 Let's say a user logs in the admin and adds a Product model instance.
 The audit log will track this in a separate table with the exact structure of you
@@ -26,7 +24,7 @@ will keep the previous entry and another one will be added reflecting the change
 When the user deletes the same model instance the audit log table will have an entry
 indicating this with the state of the model before it was deleted.
 
-
+	
 
 What It Doesn't Do
 ----------------------------

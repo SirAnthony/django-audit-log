@@ -1,5 +1,6 @@
 import sys
 import copy
+import datetime
 from django.db import models
 from django.utils.functional import curry
 from django.utils.translation import ugettext_lazy as _
@@ -149,13 +150,16 @@ class AuditLog(object):
                     #can not be guaranteed to be unique
                     #in the audit log entry but they
                     #should still be indexed for faster lookups.
+                
                     field.primary_key = False
                     field._unique = False
                     field.db_index = True
 
                 if field.rel and field.rel.related_name:
                     field.rel.related_name = '_auditlog_%s' % field.rel.related_name
+            
 
+                
                 fields[field.name] = field
 
         if hasattr(model._meta, 'auditlog_properties'):
@@ -163,7 +167,9 @@ class AuditLog(object):
                 fields[value] = getattr(model, value)
 
         return fields
+    
 
+    
     def get_logging_fields(self, model):
         """
         Returns a dictionary mapping of the fields that are used for
